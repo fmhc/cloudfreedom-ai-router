@@ -1,0 +1,32 @@
+# ==========================================
+# TENANT DEPLOYMENT - ENVIRONMENT VARIABLES
+# ==========================================
+# Du musst diese Werte in Coolify manuell einfügen!
+# Coolify UI: Environment Variables Tab
+# Fülle die LEEREN Felder mit diesen Werten:
+
+# ==== AI Provider API Keys (⚠️ KRITISCH - ERSETZE MIT ECHTEN KEYS!) ====
+OPENAI_API_KEY=sk-proj-XXXXXX (ERSETZE DIES MIT ECHTEM KEY!)
+ANTHROPIC_API_KEY=sk-ant-XXXXXX (ERSETZE DIES MIT ECHTEM KEY!)
+GOOGLE_API_KEY=AIzaXXXXX (ERSETZE DIES MIT ECHTEM KEY!)
+
+# ==== Generated Secrets (Copy & Paste Ready) ====
+LITELLM_MASTER_KEY=Wn1iHJzCsGGwzmByhO7uzxU0SoJ6oOlVH5si999qJS4=
+BILLING_API_KEY=hU/qikq0/vumeqVUHjsngQlLFUPYzP543tyZsd+ZYwU=
+POSTGRES_PASSWORD=yryImXCdZv3jVz7BbeX+WKdd47r6tMAxVIsyU5s4E34=
+
+# ==== Tenant Config (Falls nicht schon gesetzt) ====
+TENANT_ID=internal-001
+TENANT_NAME=CloudFreedom Internal
+
+# ==== PocketBase URL & Billing URL (sollten schon aus env.example da sein) ====
+# Falls NICHT vorhanden, füge hinzu:
+POCKETBASE_URL=https://api.cloudfreedom.de
+BILLING_API_URL=https://billing.cloudfreedom.de
+
+# ==== Redis Password (Falls Variable existiert) ====
+REDIS_PASSWORD=rAIBUohtAdTw9psdHG7qUiVP3mfTD1Y0kMv1jikPqKs=
+
+# ==== TENANT_SLUG (Falls Variable existiert) ====
+TENANT_SLUG=app
+

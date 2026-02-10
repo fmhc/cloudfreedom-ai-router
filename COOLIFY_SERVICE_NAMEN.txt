@@ -1,0 +1,105 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║         COOLIFY SERVICE NAMEN - COPY & PASTE FÜR UMBENENNUNG              ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+Gehe zu: https://coolify.enubys.de → Applications
+
+────────────────────────────────────────────────────────────────────────────
+
+SERVICE 1: PocketBase Core
+═══════════════════════════
+UUID: xc884osk40k4o00w4w4gowo4
+Alter Name: smiling-snail-xc884osk40k4o00w4w4gowo4
+
+👉 KLICK AUF SERVICE → "Edit" → Benenne um:
+
+Name:
+CloudFreedom - PocketBase Core (API Backend)
+
+Description:
+PocketBase Backend für User-, Tenant- und Product-Management. Läuft auf api.cloudfreedom.de
+
+URL: https://api.cloudfreedom.de
+Status: ✅ LÄUFT
+
+────────────────────────────────────────────────────────────────────────────
+
+SERVICE 2: Admin Portal
+═══════════════════════
+UUID: aoc4s8gc084wkcckogocok8s
+Alter Name: cloudy-cheetah-aoc4s8gc084wkcckogocok8s
+
+👉 KLICK AUF SERVICE → "Edit" → Benenne um:
+
+Name:
+CloudFreedom - Admin Portal (Frontend)
+
+Description:
+React Admin Portal mit User-, Tenant-, Product-Management, Analytics und Provider Keys. Läuft auf admin.cloudfreedom.de
+
+URL: https://admin.cloudfreedom.de
+Status: ⏳ WIRD DEPLOYED
+
+────────────────────────────────────────────────────────────────────────────
+
+SERVICE 3: Billing API
+══════════════════════
+UUID: fokcc0c4www08wowckog8c4c
+Alter Name: successful-seal-fokcc0c4www08wowckog8c4c
+
+👉 KLICK AUF SERVICE → "Edit" → Benenne um:
+
+Name:
+CloudFreedom - Billing API
+
+Description:
+Node.js Billing API für Budget-Tracking und Usage-Logs. Läuft auf billing.cloudfreedom.de
+
+URL: https://billing.cloudfreedom.de
+Status: ⚠️ BRAUCHT NEUSTART
+
+────────────────────────────────────────────────────────────────────────────
+
+SERVICE 4: Tenant #1 (AI Router + OpenWebUI)
+═════════════════════════════════════════════
+UUID: m00k008skc88swso0gk8wksk
+Alter Name: tough-tarsier-m00k008skc88swso0gk8wksk
+
+👉 KLICK AUF SERVICE → "Edit" → Benenne um:
+
+Name:
+CloudFreedom - Tenant #1 (AI Router + OpenWebUI)
+
+Description:
+LiteLLM AI Router mit GPT-5, Gemini 2.5 Pro (1M Context), Claude 4 + OpenWebUI Frontend. Läuft auf app.cloudfreedom.de
+
+URL: https://app.cloudfreedom.de
+Status: ⏳ WIRD DEPLOYED MIT 2025 MODELS
+
+────────────────────────────────────────────────────────────────────────────
+
+NACH DEM UMBENENNEN SIEHT ES SO AUS:
+
+✅ CloudFreedom - PocketBase Core (API Backend)
+✅ CloudFreedom - Admin Portal (Frontend)
+✅ CloudFreedom - Billing API
+✅ CloudFreedom - Tenant #1 (AI Router + OpenWebUI)
+
+Viel übersichtlicher! 🎯
+
+────────────────────────────────────────────────────────────────────────────
+
+NÄCHSTE SCHRITTE:
+
+1. Services umbenennen (5 Min)
+2. Warte bis Admin Portal deployed ist
+3. Admin User erstellen → https://api.cloudfreedom.de/_/
+4. Login → https://admin.cloudfreedom.de
+5. Alle Features testen!
+
+Siehe: ANMELDUNG_GUIDE.md für detaillierte Anleitung
+
+════════════════════════════════════════════════════════════════════════════
+

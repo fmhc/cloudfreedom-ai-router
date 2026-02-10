@@ -1,0 +1,52 @@
+version: '3.8'
+
+# Local Development Configuration
+# Starts all CloudFreedom AI Router services with exposed ports
+# Safe ports: 9200 (PocketBase), 9201 (Billing), 9202 (Admin)
+
+networks:
+  cloudfreedom-network:
+    driver: bridge
+
+services:
+  # PocketBase Core - Database & Auth
+  pocketbase:
+    image: ghcr.io/muchobien/pocketbase:0.30.2
+    container_name: pocketbase-core-local
+    restart: unless-stopped
+    ports:
+      - "9200:8090"
+    volumes:
+      - ./pocketbase-core/pb_data:/pb_data
+      - ./pocketbase-core/pb_hooks:/pb_hooks
+    networks:
+      - cloudfreedom-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8090/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Billing API - Budget Management
+  billing-api:
+    build:
+      context: ./billing-api
+      dockerfile: Dockerfile
+    container_name: billing-api-local
+    restart: unless-stopped
+    ports:
+      - "9201:3000"
+    environment:
+      - PORT=3000
+      - POCKETBASE_URL=http://pocketbase:8090
+      - BILLING_API_KEY=local-test-key-123456
+      - ADMIN_SECRET_KEY=local-admin-secret-789012
+    depends_on:
+      - pocketbase
+    networks:
+      - cloudfreedom-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:3000/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
