@@ -1,0 +1,175 @@
+# =====================================================
+# LiteLLM Configuration - CloudFreedom AI Router
+# Triple Provider Setup (Gemini + Azure + AWS)
+# =====================================================
+
+model_list:
+  # ===================================================
+  # GOOGLE VERTEX AI (GEMINI) - EU Frankfurt
+  # ===================================================
+  
+  - model_name: gemini-1.5-flash
+    litellm_params:
+      model: vertex_ai/gemini-1.5-flash
+      vertex_project: ${VERTEX_PROJECT}
+      vertex_location: ${VERTEX_LOCATION}
+      api_key: ${GOOGLE_API_KEY}
+    model_info:
+      mode: chat
+      supports_function_calling: true
+      supports_vision: true
+      max_tokens: 8192
+      input_cost_per_token: 0.000000075
+      output_cost_per_token: 0.0000003
+  
+  - model_name: gemini-1.5-pro
+    litellm_params:
+      model: vertex_ai/gemini-1.5-pro
+      vertex_project: ${VERTEX_PROJECT}
+      vertex_location: ${VERTEX_LOCATION}
+      api_key: ${GOOGLE_API_KEY}
+    model_info:
+      mode: chat
+      supports_function_calling: true
+      supports_vision: true
+      max_tokens: 8192
+      input_cost_per_token: 0.00000125
+      output_cost_per_token: 0.000005
+
+  # ===================================================
+  # MICROSOFT AZURE OPENAI - Germany West Central
+  # ===================================================
+  
+  - model_name: gpt-4o
+    litellm_params:
+      model: azure/gpt-4o
+      api_base: ${AZURE_OPENAI_ENDPOINT}
+      api_key: ${AZURE_OPENAI_API_KEY}
+      api_version: ${AZURE_OPENAI_API_VERSION}
+      azure_deployment: ${AZURE_OPENAI_DEPLOYMENT_NAME}
+    model_info:
+      mode: chat
+      supports_function_calling: true
+      supports_vision: true
+      max_tokens: 16384
+      input_cost_per_token: 0.0000025
+      output_cost_per_token: 0.00001
+  
+  - model_name: gpt-4o-mini
+    litellm_params:
+      model: azure/gpt-4o-mini
+      api_base: ${AZURE_OPENAI_ENDPOINT}
+      api_key: ${AZURE_OPENAI_API_KEY}
+      api_version: ${AZURE_OPENAI_API_VERSION}
+      azure_deployment: gpt-4o-mini
+    model_info:
+      mode: chat
+      supports_function_calling: true
+      supports_vision: true
+      max_tokens: 16384
+      input_cost_per_token: 0.00000015
+      output_cost_per_token: 0.0000006
+
+  # ===================================================
+  # AWS BEDROCK (CLAUDE) - EU Frankfurt
+  # ===================================================
+  
+  - model_name: claude-3.5-sonnet
+    litellm_params:
+      model: bedrock/anthropic.claude-3-5-sonnet-20240620-v1:0
+      aws_region_name: ${AWS_REGION_NAME}
+      aws_bedrock_runtime_endpoint: https://bedrock-runtime.${AWS_BEDROCK_RUNTIME_REGION}.amazonaws.com
+    model_info:
+      mode: chat
+      supports_function_calling: true
+      supports_vision: true
+      max_tokens: 8192
+      input_cost_per_token: 0.000003
+      output_cost_per_token: 0.000015
+  
+  - model_name: claude-3-opus
+    litellm_params:
+      model: bedrock/anthropic.claude-3-opus-20240229-v1:0
+      aws_region_name: ${AWS_REGION_NAME}
+      aws_bedrock_runtime_endpoint: https://bedrock-runtime.${AWS_BEDROCK_RUNTIME_REGION}.amazonaws.com
+    model_info:
+      mode: chat
+      supports_function_calling: true
+      supports_vision: true
+      max_tokens: 4096
+      input_cost_per_token: 0.000015
+      output_cost_per_token: 0.000075
+  
+  - model_name: claude-3-haiku
+    litellm_params:
+      model: bedrock/anthropic.claude-3-haiku-20240307-v1:0
+      aws_region_name: ${AWS_REGION_NAME}
+      aws_bedrock_runtime_endpoint: https://bedrock-runtime.${AWS_BEDROCK_RUNTIME_REGION}.amazonaws.com
+    model_info:
+      mode: chat
+      supports_function_calling: true
+      max_tokens: 4096
+      input_cost_per_token: 0.00000025
+      output_cost_per_token: 0.00000125
+
+# =====================================================
+# General Settings
+# =====================================================
+
+general_settings:
+  master_key: ${LITELLM_MASTER_KEY}
+  database_url: ${DATABASE_URL}
+  
+  # Logging
+  success_callback: ["langfuse"]
+  failure_callback: ["sentry"]
+  
+  # Rate Limiting & Caching
+  redis_host: redis
+  redis_port: 6379
+  redis_password: ${REDIS_PASSWORD}
+  
+  # Budget Management
+  max_budget: 1000  # Default budget per user (can be overridden)
+  budget_duration: "30d"
+  
+  # Fallbacks
+  fallbacks:
+    - gemini-1.5-flash: ["gemini-1.5-pro", "claude-3-haiku"]
+    - gemini-1.5-pro: ["gpt-4o", "claude-3.5-sonnet"]
+    - gpt-4o: ["claude-3.5-sonnet", "gemini-1.5-pro"]
+    - claude-3.5-sonnet: ["gpt-4o", "gemini-1.5-pro"]
+  
+  # Load Balancing
+  router_settings:
+    routing_strategy: "cost-based-routing"
+    model_group_alias:
+      fast: ["gemini-1.5-flash", "claude-3-haiku", "gpt-4o-mini"]
+      balanced: ["gemini-1.5-pro", "claude-3-haiku"]
+      premium: ["gpt-4o", "claude-3.5-sonnet", "claude-3-opus"]
+
+# =====================================================
+# Callbacks & Integrations
+# =====================================================
+
+litellm_settings:
+  # CloudFreedom Billing Integration
+  success_callback: ["webhook"]
+  webhook_url: ${BILLING_API_URL}/api/usage/track
+  webhook_headers:
+    Authorization: "Bearer ${BILLING_API_KEY}"
+    Content-Type: "application/json"
+  
+  # Drop params not supported by provider
+  drop_params: true
+  
+  # Set max retries
+  num_retries: 3
+  request_timeout: 600
+  
+  # Enable streaming
+  stream: true
+  
+  # Set RPM/TPM limits
+  rpm: 500
+  tpm: 100000

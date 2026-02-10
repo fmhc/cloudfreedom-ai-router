@@ -1,0 +1,282 @@
+# =====================================================
+# LiteLLM Configuration - CloudFreedom AI Router
+# UPDATED October 2025 with Latest Models
+# GPT-5, Gemini 2.5, Claude 4
+# =====================================================
+
+model_list:
+  # ===================================================
+  # GOOGLE GEMINI 2.5 - EU Frankfurt (OCTOBER 2025)
+  # ===================================================
+  
+  - model_name: gemini-2.5-pro
+    litellm_params:
+      model: vertex_ai/gemini-2.5-pro
+      vertex_project: ${VERTEX_PROJECT}
+      vertex_location: ${VERTEX_LOCATION}
+      api_key: ${GOOGLE_API_KEY}
+    model_info:
+      mode: chat
+      supports_function_calling: true
+      supports_vision: true
+      supports_audio: true
+      supports_video: true
+      max_tokens: 1048576  # 1 MILLION token context!
+      input_cost_per_token: 0.00000125
+      output_cost_per_token: 0.000005
+  
+  - model_name: gemini-2.5-flash
+    litellm_params:
+      model: vertex_ai/gemini-2.5-flash
+      vertex_project: ${VERTEX_PROJECT}
+      vertex_location: ${VERTEX_LOCATION}
+      api_key: ${GOOGLE_API_KEY}
+    model_info:
+      mode: chat
+      supports_function_calling: true
+      supports_vision: true
+      supports_audio: true
+      supports_video: true
+      max_tokens: 1048576
+      input_cost_per_token: 0.000000075
+      output_cost_per_token: 0.0000003
+  
+  # FALLBACK: Gemini 1.5 (if 2.5 unavailable)
+  - model_name: gemini-1.5-pro
+    litellm_params:
+      model: vertex_ai/gemini-1.5-pro
+      vertex_project: ${VERTEX_PROJECT}
+      vertex_location: ${VERTEX_LOCATION}
+      api_key: ${GOOGLE_API_KEY}
+    model_info:
+      mode: chat
+      supports_function_calling: true
+      supports_vision: true
+      max_tokens: 1048576
+      input_cost_per_token: 0.00000125
+      output_cost_per_token: 0.000005
+
+  # ===================================================
+  # OPENAI GPT-5 - Germany West Central (AUGUST 2025)
+  # ===================================================
+  
+  - model_name: gpt-5
+    litellm_params:
+      model: azure/gpt-5
+      api_base: ${AZURE_OPENAI_ENDPOINT}
+      api_key: ${AZURE_OPENAI_API_KEY}
+      api_version: "2025-08-01-preview"
+      azure_deployment: ${AZURE_GPT5_DEPLOYMENT_NAME:-gpt-5}
+    model_info:
+      mode: chat
+      supports_function_calling: true
+      supports_vision: true
+      supports_reasoning: true
+      max_tokens: 32768
+      input_cost_per_token: 0.000010
+      output_cost_per_token: 0.000030
+  
+  - model_name: gpt-5-mini
+    litellm_params:
+      model: azure/gpt-5-mini
+      api_base: ${AZURE_OPENAI_ENDPOINT}
+      api_key: ${AZURE_OPENAI_API_KEY}
+      api_version: "2025-08-01-preview"
+      azure_deployment: ${AZURE_GPT5_MINI_DEPLOYMENT_NAME:-gpt-5-mini}
+    model_info:
+      mode: chat
+      supports_function_calling: true
+      supports_vision: true
+      max_tokens: 32768
+      input_cost_per_token: 0.000001
+      output_cost_per_token: 0.000003
+  
+  # FALLBACK: GPT-4o (if GPT-5 unavailable)
+  - model_name: gpt-4o
+    litellm_params:
+      model: azure/gpt-4o
+      api_base: ${AZURE_OPENAI_ENDPOINT}
+      api_key: ${AZURE_OPENAI_API_KEY}
+      api_version: ${AZURE_OPENAI_API_VERSION:-2024-08-01-preview}
+      azure_deployment: ${AZURE_OPENAI_DEPLOYMENT_NAME:-gpt-4o}
+    model_info:
+      mode: chat
+      supports_function_calling: true
+      supports_vision: true
+      max_tokens: 16384
+      input_cost_per_token: 0.0000025
+      output_cost_per_token: 0.00001
+
+  # ===================================================
+  # ANTHROPIC CLAUDE 4 - EU Frankfurt (AUGUST 2025)
+  # ===================================================
+  
+  - model_name: claude-4-opus
+    litellm_params:
+      model: bedrock/anthropic.claude-4-opus-20250805-v1:0
+      aws_region_name: ${AWS_REGION_NAME:-eu-central-1}
+      aws_bedrock_runtime_endpoint: https://bedrock-runtime.${AWS_BEDROCK_RUNTIME_REGION:-eu-central-1}.amazonaws.com
+    model_info:
+      mode: chat
+      supports_function_calling: true
+      supports_vision: true
+      max_tokens: 16384
+      input_cost_per_token: 0.000015
+      output_cost_per_token: 0.000075
+  
+  - model_name: claude-4-sonnet
+    litellm_params:
+      model: bedrock/anthropic.claude-4-sonnet-20250805-v1:0
+      aws_region_name: ${AWS_REGION_NAME:-eu-central-1}
+      aws_bedrock_runtime_endpoint: https://bedrock-runtime.${AWS_BEDROCK_RUNTIME_REGION:-eu-central-1}.amazonaws.com
+    model_info:
+      mode: chat
+      supports_function_calling: true
+      supports_vision: true
+      max_tokens: 16384
+      input_cost_per_token: 0.000003
+      output_cost_per_token: 0.000015
+  
+  # FALLBACK: Claude 3.5 (if Claude 4 unavailable)
+  - model_name: claude-3.5-sonnet
+    litellm_params:
+      model: bedrock/anthropic.claude-3-5-sonnet-20240620-v1:0
+      aws_region_name: ${AWS_REGION_NAME:-eu-central-1}
+      aws_bedrock_runtime_endpoint: https://bedrock-runtime.${AWS_BEDROCK_RUNTIME_REGION:-eu-central-1}.amazonaws.com
+    model_info:
+      mode: chat
+      supports_function_calling: true
+      supports_vision: true
+      max_tokens: 8192
+      input_cost_per_token: 0.000003
+      output_cost_per_token: 0.000015
+  
+  - model_name: claude-3-haiku
+    litellm_params:
+      model: bedrock/anthropic.claude-3-haiku-20240307-v1:0
+      aws_region_name: ${AWS_REGION_NAME:-eu-central-1}
+    model_info:
+      mode: chat
+      supports_function_calling: true
+      max_tokens: 4096
+      input_cost_per_token: 0.00000025
+      output_cost_per_token: 0.00000125
+
+# =====================================================
+# General Settings
+# =====================================================
+
+general_settings:
+  master_key: ${LITELLM_MASTER_KEY}
+  database_url: ${DATABASE_URL}
+  
+  # Logging
+  success_callback: ["langfuse"]
+  failure_callback: ["sentry"]
+  
+  # Rate Limiting & Caching
+  redis_host: redis
+  redis_port: 6379
+  redis_password: ${REDIS_PASSWORD}
+  
+  # Budget Management
+  max_budget: 1000  # Default budget per user
+  budget_duration: "30d"
+  
+  # Fallbacks (2025 Models First, 2024 Models as Backup)
+  fallbacks:
+    # Latest models first
+    - gemini-2.5-flash: ["gemini-2.5-pro", "gemini-1.5-flash"]
+    - gemini-2.5-pro: ["gpt-5", "claude-4-sonnet", "gemini-1.5-pro"]
+    - gpt-5: ["claude-4-sonnet", "gemini-2.5-pro", "gpt-4o"]
+    - gpt-5-mini: ["gemini-2.5-flash", "gpt-4o-mini"]
+    - claude-4-opus: ["gpt-5", "gemini-2.5-pro"]
+    - claude-4-sonnet: ["gpt-5", "gemini-2.5-pro", "claude-3.5-sonnet"]
+    
+    # Fallback to older models if needed
+    - gemini-1.5-flash: ["gpt-4o-mini", "claude-3-haiku"]
+    - gemini-1.5-pro: ["gpt-4o", "claude-3.5-sonnet"]
+    - gpt-4o: ["claude-3.5-sonnet", "gemini-1.5-pro"]
+    - claude-3.5-sonnet: ["gpt-4o", "gemini-1.5-pro"]
+  
+  # Load Balancing with 2025 Models
+  router_settings:
+    routing_strategy: "cost-based-routing"
+    model_group_alias:
+      # Ultra-fast & cheap (2025)
+      fast: ["gemini-2.5-flash", "gpt-5-mini", "claude-3-haiku"]
+      
+      # Balanced price/performance (2025)
+      balanced: ["gemini-2.5-pro", "claude-4-sonnet", "gpt-5"]
+      
+      # Premium quality (2025)
+      premium: ["claude-4-opus", "gpt-5", "gemini-2.5-pro"]
+      
+      # Maximum context
+      long-context: ["gemini-2.5-pro", "gemini-2.5-flash"]  # 1M tokens!
+      
+      # Best reasoning
+      reasoning: ["gpt-5", "claude-4-opus"]
+
+# =====================================================
+# Callbacks & Integrations
+# =====================================================
+
+litellm_settings:
+  # CloudFreedom Billing Integration
+  success_callback: ["webhook"]
+  webhook_url: ${BILLING_API_URL}/api/usage/track
+  webhook_headers:
+    Authorization: "Bearer ${BILLING_API_KEY}"
+    Content-Type: "application/json"
+  
+  # Drop params not supported by provider
+  drop_params: true
+  
+  # Set max retries
+  num_retries: 3
+  request_timeout: 600
+  
+  # Enable streaming
+  stream: true
+  
+  # Set RPM/TPM limits (higher for 2025 models)
+  rpm: 1000  # Increased from 500
+  tpm: 200000  # Increased from 100000
+
+# =====================================================
+# NOTES FOR DEPLOYMENT
+# =====================================================
+#
+# Before using this config:
+#
+# 1. VERIFY MODEL ACCESS:
+#    - Azure: Check if GPT-5 is available in your region
+#    - Vertex AI: Verify Gemini 2.5 is enabled
+#    - Bedrock: Confirm Claude 4 model access
+#
+# 2. UPDATE MODEL IDs IF NEEDED:
+#    - Model IDs might be different (check provider docs)
+#    - API versions might need adjustment
+#    - Deployment names might vary
+#
+# 3. TEST THOROUGHLY:
+#    - Test each model individually
+#    - Verify fallbacks work
+#    - Check budget tracking
+#    - Monitor costs closely
+#
+# 4. COST MANAGEMENT:
+#    - GPT-5 is ~4x more expensive than GPT-4o
+#    - Claude 4 Opus is ~3x more expensive
+#    - Gemini 2.5 is similar cost to 1.5
+#    - Consider setting per-model budgets
+#
+# 5. MIGRATION STRATEGY:
+#    - Start with one new model
+#    - Test for 1 week
+#    - Gradually add others
+#    - Keep old models as fallbacks
+#
+# =====================================================
+

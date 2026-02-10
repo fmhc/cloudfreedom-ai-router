@@ -1,0 +1,143 @@
+version: '3.8'
+
+services:
+  # LiteLLM Proxy - AI Routing with Budget Integration
+  litellm:
+    build:
+      context: .
+      dockerfile: Dockerfile.litellm
+    container_name: ${TENANT_SLUG:-tenant}-litellm
+    restart: unless-stopped
+    # ports:
+    #   - "4000:4000"  # Disabled for local dev - use docker-compose.local.yml
+    environment:
+      # LiteLLM Configuration
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+      - LITELLM_LOG_LEVEL=INFO
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      
+      # AI Provider API Keys
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - VERTEX_PROJECT=${VERTEX_PROJECT}
+      - VERTEX_LOCATION=${VERTEX_LOCATION}
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
+      
+      # CloudFreedom Integration
+      - POCKETBASE_URL=https://api.cloudfreedom.de
+      - BILLING_API_URL=https://billing.cloudfreedom.de
+      - BILLING_API_KEY=${BILLING_API_KEY}
+      - TENANT_ID=${TENANT_ID}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - default
+    labels:
+      - "coolify.managed=true"
+      - "coolify.type=application"
+      - "coolify.name=${TENANT_SLUG:-tenant}-litellm"
+      - "traefik.enable=true"
+      - "traefik.http.routers.${TENANT_SLUG:-tenant}-api.rule=Host(`api-${TENANT_SLUG:-tenant}.cloudfreedom.de`)"
+      - "traefik.http.routers.${TENANT_SLUG:-tenant}-api.entrypoints=websecure"
+      - "traefik.http.routers.${TENANT_SLUG:-tenant}-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.${TENANT_SLUG:-tenant}-api.loadbalancer.server.port=4000"
+    depends_on:
+      - postgres
+      - redis
+
+  # OpenWebUI - Chat Interface
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: ${TENANT_SLUG:-tenant}-openwebui
+    restart: unless-stopped
+    # ports:
+    #   - "3001:8080"  # Disabled for local dev - use docker-compose.local.yml
+    environment:
+      # OpenWebUI Configuration
+      - WEBUI_NAME=${TENANT_NAME:-CloudFreedom AI}
+      - WEBUI_AUTH=true
+      - ENABLE_SIGNUP=${ENABLE_SIGNUP:-false}
+      - DEFAULT_USER_ROLE=user
+      
+      # LiteLLM Integration
+      - OPENAI_API_BASE_URL=http://litellm:4000/v1
+      - OPENAI_API_KEY=${LITELLM_MASTER_KEY}
+      
+      # PocketBase Integration (for user auth)
+      - OAUTH_CLIENT_ID=${POCKETBASE_OAUTH_CLIENT_ID}
+      - OAUTH_CLIENT_SECRET=${POCKETBASE_OAUTH_CLIENT_SECRET}
+      - OAUTH_PROVIDER_URL=https://api.cloudfreedom.de
+      
+      # Database - SQLite by default (comment out for PostgreSQL)
+      # - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      
+    volumes:
+      - openwebui-data:/app/backend/data
+    depends_on:
+      - litellm
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - default
+    labels:
+      - "coolify.managed=true"
+      - "coolify.type=application"
+      - "coolify.name=${TENANT_SLUG:-tenant}-openwebui"
+      - "traefik.enable=true"
+      - "traefik.http.routers.${TENANT_SLUG:-tenant}-chat.rule=Host(`${TENANT_SLUG:-tenant}.cloudfreedom.de`)"
+      - "traefik.http.routers.${TENANT_SLUG:-tenant}-chat.entrypoints=websecure"
+      - "traefik.http.routers.${TENANT_SLUG:-tenant}-chat.tls.certresolver=letsencrypt"
+      - "traefik.http.services.${TENANT_SLUG:-tenant}-chat.loadbalancer.server.port=8080"
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: ${TENANT_SLUG:-tenant}-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - default
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: ${TENANT_SLUG:-tenant}-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - default
+
+volumes:
+  postgres-data:
+  redis-data:
+  openwebui-data:
+
+networks:
+  default:

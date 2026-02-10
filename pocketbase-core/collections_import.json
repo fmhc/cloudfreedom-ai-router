@@ -1,0 +1,292 @@
+[
+  {
+    "id": "tenants_collection",
+    "name": "tenants",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {
+        "id": "tenant_name",
+        "name": "name",
+        "type": "text",
+        "required": true,
+        "options": {
+          "min": 1,
+          "max": 255
+        }
+      },
+      {
+        "id": "tenant_slug",
+        "name": "slug",
+        "type": "text",
+        "required": true,
+        "options": {
+          "min": 1,
+          "max": 50,
+          "pattern": "^[a-z0-9-]+$"
+        }
+      },
+      {
+        "id": "tenant_domain",
+        "name": "domain",
+        "type": "text",
+        "required": false,
+        "options": {
+          "max": 255
+        }
+      },
+      {
+        "id": "tenant_type",
+        "name": "type",
+        "type": "select",
+        "required": true,
+        "options": {
+          "values": ["internal", "demo", "dev", "enterprise"],
+          "maxSelect": 1
+        }
+      },
+      {
+        "id": "tenant_status",
+        "name": "status",
+        "type": "select",
+        "required": true,
+        "options": {
+          "values": ["active", "inactive", "pending"],
+          "maxSelect": 1
+        }
+      }
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX idx_tenants_slug ON tenants (slug)"
+    ],
+    "listRule": "@request.auth.id != ''",
+    "viewRule": "@request.auth.id != ''",
+    "createRule": null,
+    "updateRule": null,
+    "deleteRule": null
+  },
+  {
+    "id": "products_collection",
+    "name": "products",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {
+        "id": "product_name",
+        "name": "name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "product_description",
+        "name": "description",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "product_price",
+        "name": "price",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "product_currency",
+        "name": "currency",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "product_budget",
+        "name": "budget_included",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "product_models",
+        "name": "models",
+        "type": "json",
+        "required": false
+      },
+      {
+        "id": "product_features",
+        "name": "features",
+        "type": "json",
+        "required": false
+      },
+      {
+        "id": "product_rate_limit",
+        "name": "rate_limit",
+        "type": "number",
+        "required": false
+      },
+      {
+        "id": "product_active",
+        "name": "active",
+        "type": "bool",
+        "required": false
+      }
+    ],
+    "listRule": "@request.auth.id != ''",
+    "viewRule": "@request.auth.id != ''",
+    "createRule": null,
+    "updateRule": null,
+    "deleteRule": null
+  },
+  {
+    "id": "cf_users_collection",
+    "name": "cf_users",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {
+        "id": "user_email",
+        "name": "email",
+        "type": "email",
+        "required": true
+      },
+      {
+        "id": "user_name",
+        "name": "name",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "user_role",
+        "name": "role",
+        "type": "select",
+        "required": true,
+        "options": {
+          "values": ["admin", "tenant_admin", "user"],
+          "maxSelect": 1
+        }
+      },
+      {
+        "id": "user_status",
+        "name": "status",
+        "type": "select",
+        "required": true,
+        "options": {
+          "values": ["active", "inactive", "pending"],
+          "maxSelect": 1
+        }
+      },
+      {
+        "id": "user_tenant_id",
+        "name": "tenant_id",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "user_product_id",
+        "name": "product_id",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "user_budget_total",
+        "name": "budget_total",
+        "type": "number",
+        "required": false
+      },
+      {
+        "id": "user_budget_used",
+        "name": "budget_used",
+        "type": "number",
+        "required": false
+      },
+      {
+        "id": "user_budget_remaining",
+        "name": "budget_remaining",
+        "type": "number",
+        "required": false
+      },
+      {
+        "id": "user_budget_reset",
+        "name": "budget_reset_date",
+        "type": "date",
+        "required": false
+      },
+      {
+        "id": "user_api_key",
+        "name": "litellm_api_key",
+        "type": "text",
+        "required": false
+      }
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX idx_cf_users_email ON cf_users (email)"
+    ],
+    "listRule": "@request.auth.id != ''",
+    "viewRule": "@request.auth.id != ''",
+    "createRule": null,
+    "updateRule": null,
+    "deleteRule": null
+  },
+  {
+    "id": "usage_logs_collection",
+    "name": "usage_logs",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {
+        "id": "log_tenant_id",
+        "name": "tenant_id",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "log_user_id",
+        "name": "user_id",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "log_model",
+        "name": "model",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "log_prompt_tokens",
+        "name": "prompt_tokens",
+        "type": "number",
+        "required": false
+      },
+      {
+        "id": "log_completion_tokens",
+        "name": "completion_tokens",
+        "type": "number",
+        "required": false
+      },
+      {
+        "id": "log_total_tokens",
+        "name": "total_tokens",
+        "type": "number",
+        "required": false
+      },
+      {
+        "id": "log_cost",
+        "name": "cost_total",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "log_timestamp",
+        "name": "timestamp",
+        "type": "date",
+        "required": false
+      }
+    ],
+    "indexes": [
+      "CREATE INDEX idx_usage_logs_tenant ON usage_logs (tenant_id)",
+      "CREATE INDEX idx_usage_logs_user ON usage_logs (user_id)",
+      "CREATE INDEX idx_usage_logs_timestamp ON usage_logs (timestamp)"
+    ],
+    "listRule": "@request.auth.id != ''",
+    "viewRule": "@request.auth.id != ''",
+    "createRule": null,
+    "updateRule": null,
+    "deleteRule": null
+  }
+]
+

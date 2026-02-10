@@ -1,0 +1,263 @@
+[
+  {
+    "listRule": "@request.auth.id != ''",
+    "viewRule": "@request.auth.id != ''",
+    "createRule": null,
+    "updateRule": null,
+    "deleteRule": null,
+    "name": "cf_users",
+    "type": "base",
+    "fields": [
+      {
+        "exceptDomains": null,
+        "hidden": false,
+        "name": "email",
+        "onlyDomains": null,
+        "presentable": true,
+        "required": true,
+        "system": false,
+        "type": "email"
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "max": 255,
+        "min": 1,
+        "name": "name",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "max": 0,
+        "min": 0,
+        "name": "tenant_id",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "max": 0,
+        "min": 0,
+        "name": "product_id",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "hidden": false,
+        "name": "role",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "select",
+        "maxSelect": 1,
+        "values": [
+          "user",
+          "tenant_admin",
+          "super_admin"
+        ]
+      },
+      {
+        "hidden": false,
+        "name": "status",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "select",
+        "maxSelect": 1,
+        "values": [
+          "pending",
+          "active",
+          "suspended"
+        ]
+      },
+      {
+        "hidden": false,
+        "name": "budget_limit",
+        "noDecimal": false,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number",
+        "min": 0,
+        "max": null
+      },
+      {
+        "hidden": false,
+        "name": "budget_used",
+        "noDecimal": false,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number",
+        "min": 0,
+        "max": null
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "max": 0,
+        "min": 0,
+        "name": "api_key",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "hidden": false,
+        "name": "last_login",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "date",
+        "min": "",
+        "max": ""
+      }
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX `idx_cf_users_email` ON `cf_users` (`email`)",
+      "CREATE INDEX `idx_cf_users_tenant` ON `cf_users` (`tenant_id`)"
+    ],
+    "system": false
+  },
+  {
+    "listRule": "@request.auth.id != ''",
+    "viewRule": "@request.auth.id != ''",
+    "createRule": null,
+    "updateRule": null,
+    "deleteRule": null,
+    "name": "usage_logs",
+    "type": "base",
+    "fields": [
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "max": 0,
+        "min": 0,
+        "name": "tenant_id",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "max": 0,
+        "min": 0,
+        "name": "user_id",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "max": 255,
+        "min": 0,
+        "name": "model",
+        "pattern": "",
+        "presentable": true,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "hidden": false,
+        "name": "input_tokens",
+        "noDecimal": false,
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "number",
+        "min": 0,
+        "max": null
+      },
+      {
+        "hidden": false,
+        "name": "output_tokens",
+        "noDecimal": false,
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "number",
+        "min": 0,
+        "max": null
+      },
+      {
+        "hidden": false,
+        "name": "total_tokens",
+        "noDecimal": false,
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "number",
+        "min": 0,
+        "max": null
+      },
+      {
+        "hidden": false,
+        "name": "cost",
+        "noDecimal": false,
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "number",
+        "min": 0,
+        "max": null
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "max": 0,
+        "min": 0,
+        "name": "request_id",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "hidden": false,
+        "name": "metadata",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "json",
+        "maxSize": 0
+      }
+    ],
+    "indexes": [
+      "CREATE INDEX `idx_usage_logs_tenant` ON `usage_logs` (`tenant_id`)",
+      "CREATE INDEX `idx_usage_logs_user` ON `usage_logs` (`user_id`)",
+      "CREATE INDEX `idx_usage_logs_created` ON `usage_logs` (`created`)"
+    ],
+    "system": false
+  }
+]
+

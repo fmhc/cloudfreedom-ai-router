@@ -1,0 +1,29 @@
+version: '3.8'
+
+# Local Development Override - Safe Ports (92xx)
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.local.yml up -d
+
+services:
+  litellm:
+    ports:
+      - "9203:4000"  # LiteLLM on 9203 instead of 4000
+    environment:
+      - POCKETBASE_URL=http://host.docker.internal:9200
+      - BILLING_API_URL=http://host.docker.internal:9201
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  
+  openwebui:
+    ports:
+      - "9204:8080"  # OpenWebUI on 9204 instead of 3001
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  
+  postgres:
+    ports:
+      - "9205:5432"  # Postgres on 9205
+  
+  redis:
+    ports:
+      - "9206:6379"  # Redis on 9206
+
