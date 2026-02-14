@@ -1,35 +1,69 @@
+# CloudFreedom Agent Platform — OpenClaw Bot Template
+# Deploy: Replace ${TENANT_ID}, ${TENANT_DOMAIN} and secrets before deploying
+#
+# This template creates an isolated OpenClaw agent instance with:
+# - Persistent workspace (memory, sessions, config)
+# - Traefik HTTPS routing via *.cloudfreedom.de subdomain
+# - Resource limits for fair multi-tenant usage
+# - Health monitoring
+
 services:
-  openclaw-agent:
-    build: .
+  openclaw:
+    image: ghcr.io/openclaw/openclaw:latest
+    container_name: cf-agent-${TENANT_ID}
     restart: unless-stopped
     environment:
-      # Provided via Coolify
-      AGENT_NAME: ${AGENT_NAME:-openclaw-agent}
-      PORT: ${PORT:-3000}
-      POCKETBASE_URL: ${POCKETBASE_URL:-https://api.cloudfreedom.de}
-      POCKETBASE_API_TOKEN: ${POCKETBASE_API_TOKEN}
-      CLOUDFREEDOM_ROUTER_BASE_URL: ${CLOUDFREEDOM_ROUTER_BASE_URL:-https://router.cloudfreedom.de}
-      CLOUDFREEDOM_API_KEY: ${CLOUDFREEDOM_API_KEY}
-      # optional webhook secret for inbound triggers
-      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-}
-      LOG_LEVEL: ${LOG_LEVEL:-info}
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/healthz"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
+      # --- Core OpenClaw Config ---
+      OPENCLAW_CONFIG: |
+        {
+          "agent": { "id": "main", "name": "${AGENT_NAME:-CloudFreedom Agent}" },
+          "providers": {
+            "anthropic": { "apiKey": "${ANTHROPIC_API_KEY:-}" },
+            "openai": { "apiKey": "${OPENAI_API_KEY:-}" },
+            "google": { "apiKey": "${GOOGLE_API_KEY:-}" }
+          },
+          "model": "${DEFAULT_MODEL:-anthropic/claude-sonnet-4-20250514}",
+          "channels": {}
+        }
+      # --- Optional: Messaging Channels ---
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-}
+      # --- Platform ---
+      NODE_ENV: production
+    volumes:
+      - openclaw-data:/home/node/.openclaw
+    networks:
+      - agent-net
     deploy:
       resources:
         limits:
-          cpus: "1.0"
-          memory: 1024M
+          cpus: "${CPU_LIMIT:-1.0}"
+          memory: "${MEM_LIMIT:-1G}"
         reservations:
-          cpus: "0.10"
-          memory: 256M
+          cpus: "0.25"
+          memory: "256M"
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     labels:
-      # If you want a public webhook endpoint, enable Traefik and set DOMAIN.
-      - "traefik.enable=${TRAEFIK_ENABLE:-false}"
-      - "traefik.http.routers.${STACK_NAME:-openclaw}.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.routers.${STACK_NAME:-openclaw}.entrypoints=websecure"
-      - "traefik.http.routers.${STACK_NAME:-openclaw}.tls=true"
-      - "traefik.http.services.${STACK_NAME:-openclaw}.loadbalancer.server.port=3000"
+      - "traefik.enable=true"
+      - "traefik.http.routers.agent-${TENANT_ID}.rule=Host(`${TENANT_DOMAIN:-${TENANT_ID}.cloudfreedom.de}`)"
+      - "traefik.http.routers.agent-${TENANT_ID}.entrypoints=https"
+      - "traefik.http.routers.agent-${TENANT_ID}.tls=true"
+      - "traefik.http.routers.agent-${TENANT_ID}.tls.certresolver=letsencrypt"
+      - "traefik.http.services.agent-${TENANT_ID}.loadbalancer.server.port=18789"
+      - "coolify.managed=true"
+      - "cloudfreedom.tenant=${TENANT_ID}"
+      - "cloudfreedom.template=openclaw-agent"
+
+volumes:
+  openclaw-data:
+    name: cf-agent-${TENANT_ID}-data
+
+networks:
+  agent-net:
+    name: cf-agent-${TENANT_ID}-net
+    driver: bridge

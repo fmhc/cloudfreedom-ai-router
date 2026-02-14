@@ -1,13 +1,12 @@
 {
   "name": "cloudfreedom-provisioner",
-  "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "provision": "node index.js"
+    "dev": "bun run --watch index.ts",
+    "start": "bun run index.ts"
   },
   "dependencies": {
-    "dotenv": "^16.4.7",
-    "yargs": "^17.7.2"
+    "hono": "^4.0.0"
   }
 }
