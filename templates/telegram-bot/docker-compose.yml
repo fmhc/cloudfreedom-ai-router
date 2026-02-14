@@ -1,0 +1,26 @@
+services:
+  telegram-bot:
+    build: .
+    restart: unless-stopped
+    environment:
+      # Provided via Coolify environment variables
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      CLOUDFREEDOM_ROUTER_BASE_URL: ${CLOUDFREEDOM_ROUTER_BASE_URL:-https://router.cloudfreedom.de}
+      CLOUDFREEDOM_API_KEY: ${CLOUDFREEDOM_API_KEY}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,sys; sys.exit(0 if os.getenv('TELEGRAM_BOT_TOKEN') else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          cpus: "0.10"
+          memory: 128M
+    labels:
+      # No public ingress needed for long-polling bots.
+      - "traefik.enable=false"

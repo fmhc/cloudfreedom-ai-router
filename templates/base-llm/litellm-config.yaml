@@ -1,0 +1,13 @@
+model_list:
+  # Example routing through provider keys set as environment variables in Coolify.
+  - model_name: gpt-4o-mini
+    litellm_params:
+      model: openai/gpt-4o-mini
+
+router_settings:
+  # Keep it simple for MVP
+  routing_strategy: simple-shuffle
+
+general_settings:
+  # Reduce accidental PII logging
+  disable_error_logs: false

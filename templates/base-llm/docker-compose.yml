@@ -1,0 +1,64 @@
+services:
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    restart: unless-stopped
+    environment:
+      # Configure providers via Coolify env vars.
+      # Example: OPENAI_API_KEY, AZURE_API_KEY, etc.
+      LITELLM_LOG: ${LITELLM_LOG:-INFO}
+      # Optional: set a master key for OpenAI-compatible auth
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-}
+      # Configuration file is mounted below
+    volumes:
+      - ./litellm-config.yaml:/app/config.yaml:ro
+    command: ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "2"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:4000/health').read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2048M
+        reservations:
+          cpus: "0.25"
+          memory: 512M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.${STACK_NAME:-litellm}.rule=Host(`${LITELLM_DOMAIN}`)"
+      - "traefik.http.routers.${STACK_NAME:-litellm}.entrypoints=websecure"
+      - "traefik.http.routers.${STACK_NAME:-litellm}.tls=true"
+      - "traefik.http.services.${STACK_NAME:-litellm}.loadbalancer.server.port=4000"
+
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
+    restart: unless-stopped
+    environment:
+      # Point OpenWebUI to LiteLLM OpenAI-compatible API
+      OPENAI_API_BASE_URL: http://litellm:4000/v1
+      OPENAI_API_KEY: ${LITELLM_MASTER_KEY:-}
+      WEBUI_AUTH: ${WEBUI_AUTH:-True}
+      WEBUI_NAME: ${WEBUI_NAME:-CloudFreedom}
+    depends_on:
+      - litellm
+    volumes:
+      - openwebui-data:/app/backend/data
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 6144M
+        reservations:
+          cpus: "0.25"
+          memory: 512M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.${STACK_NAME:-openwebui}.rule=Host(`${WEBUI_DOMAIN}`)"
+      - "traefik.http.routers.${STACK_NAME:-openwebui}.entrypoints=websecure"
+      - "traefik.http.routers.${STACK_NAME:-openwebui}.tls=true"
+      - "traefik.http.services.${STACK_NAME:-openwebui}.loadbalancer.server.port=8080"
+
+volumes:
+  openwebui-data:

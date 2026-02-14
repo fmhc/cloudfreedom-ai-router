@@ -51,6 +51,33 @@ CloudFreedom AI Router
     └── Budget Integration
 ```
 
+## 🤖 Agent Hosting (CloudFreedom Agent Platform)
+
+CloudFreedom wird um **Agent-/Bot-Hosting** erweitert: neben dem Managed LLM Routing (Router) können Tenant-spezifische **Bots, Worker und Agenten** sicher auf derselben souveränen Infrastruktur betrieben werden.
+
+Technisch basiert das auf dem bestehenden Setup:
+
+- **Coolify + Docker** (keine Podman/Kata/extra Provisioning-Services)
+- **Traefik** als gemeinsamer Ingress/TLS
+- **PocketBase (api.cloudfreedom.de)** als Tenant/Billing Source of Truth
+
+### Was neu dazu kommt
+
+- **Templates** für typische Workloads (Docker Compose)
+  - `templates/openclaw-agent/`
+  - `templates/telegram-bot/`
+  - `templates/base-llm/` (LiteLLM + OpenWebUI)
+- **Provisioner CLI** (`src/provisioner/`): erstellt pro Tenant ein Coolify-Projekt und deployed Stacks via **Coolify API**.
+
+👉 Einstieg in die Agent-Hosting-Doku:
+
+- `docs/agent-platform/PRODUCT.md`
+- `docs/agent-platform/ARCHITECTURE.md`
+- `docs/agent-platform/MVP-PLAN.md`
+- `docs/agent-platform/INTEGRATION.md`
+- `docs/agent-platform/SECURITY.md`
+- `docs/agent-platform/PRICING.md`
+
 ## 🚀 Quick Start
 
 ### Voraussetzungen
