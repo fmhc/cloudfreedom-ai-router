@@ -1,64 +1,206 @@
+version: '3.8'
+
 services:
   litellm:
     image: ghcr.io/berriai/litellm:main-latest
+    container_name: cf-${TENANT_ID}-litellm
     restart: unless-stopped
+    
+    # Security Hardening
+    user: "1000:1000"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    
     environment:
-      # Configure providers via Coolify env vars.
-      # Example: OPENAI_API_KEY, AZURE_API_KEY, etc.
-      LITELLM_LOG: ${LITELLM_LOG:-INFO}
-      # Optional: set a master key for OpenAI-compatible auth
-      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-}
-      # Configuration file is mounted below
+      # LiteLLM Configuration
+      LITELLM_LOG: "${LITELLM_LOG:-info}"
+      LITELLM_MASTER_KEY: "${LITELLM_MASTER_KEY}"
+      
+      # Provider API Keys
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      AZURE_API_KEY: "${AZURE_API_KEY:-}"
+      GOOGLE_API_KEY: "${GOOGLE_API_KEY:-}"
+      
+      # CloudFreedom Integration
+      TENANT_ID: "${TENANT_ID}"
+      CF_API_URL: "${CF_API_URL:-https://api.cloudfreedom.de}"
+      CF_BILLING_URL: "${CF_BILLING_URL:-https://billing.cloudfreedom.de}"
+    
     volumes:
-      - ./litellm-config.yaml:/app/config.yaml:ro
-    command: ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "2"]
+      - litellm-config:/app/config:ro
+      - litellm-data:/app/data
+      - /tmp
+    
+    command: ["--port", "4000", "--num_workers", "2", "--host", "0.0.0.0"]
+    
+    deploy:
+      resources:
+        limits:
+          cpus: "${LITELLM_CPU_LIMIT:-1.0}"
+          memory: "${LITELLM_MEM_LIMIT:-2G}"
+        reservations:
+          cpus: "0.25"
+          memory: "512M"
+    
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:4000/health').read()"]
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 2048M
-        reservations:
-          cpus: "0.25"
-          memory: 512M
+      start_period: 30s
+    
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    
     labels:
+      # Coolify Management
+      - "coolify.managed=true"
+      - "coolify.version=${COOLIFY_VERSION}"
+      
+      # CloudFreedom Labels
+      - "cf.platform=agent-platform"
+      - "cf.tenant=${TENANT_ID}"
+      - "cf.service-type=litellm"
+      - "cf.deployed-by=provisioner-cli"
+      - "cf.deployed-at=${DEPLOY_TIMESTAMP}"
+      
+      # Traefik Configuration
       - "traefik.enable=true"
-      - "traefik.http.routers.${STACK_NAME:-litellm}.rule=Host(`${LITELLM_DOMAIN}`)"
-      - "traefik.http.routers.${STACK_NAME:-litellm}.entrypoints=websecure"
-      - "traefik.http.routers.${STACK_NAME:-litellm}.tls=true"
-      - "traefik.http.services.${STACK_NAME:-litellm}.loadbalancer.server.port=4000"
+      - "traefik.http.routers.cf-${TENANT_ID}-litellm-http.rule=Host(\`${TENANT_ID}-api.cloudfreedom.de\`)"
+      - "traefik.http.routers.cf-${TENANT_ID}-litellm-http.entrypoints=http"
+      - "traefik.http.routers.cf-${TENANT_ID}-litellm-http.middlewares=redirect-to-https"
+      - "traefik.http.routers.cf-${TENANT_ID}-litellm-https.rule=Host(\`${TENANT_ID}-api.cloudfreedom.de\`)"
+      - "traefik.http.routers.cf-${TENANT_ID}-litellm-https.entrypoints=https"
+      - "traefik.http.routers.cf-${TENANT_ID}-litellm-https.tls=true"
+      - "traefik.http.routers.cf-${TENANT_ID}-litellm-https.tls.certresolver=letsencrypt"
+      - "traefik.http.services.cf-${TENANT_ID}-litellm.loadbalancer.server.port=4000"
+      
+      # Monitoring
+      - "monitoring.enabled=true"
+      - "monitoring.service=litellm"
+      - "monitoring.tenant=${TENANT_ID}"
+    
+    networks:
+      - coolify
+      - llm-internal
 
   openwebui:
     image: ghcr.io/open-webui/open-webui:main
+    container_name: cf-${TENANT_ID}-openwebui
     restart: unless-stopped
-    environment:
-      # Point OpenWebUI to LiteLLM OpenAI-compatible API
-      OPENAI_API_BASE_URL: http://litellm:4000/v1
-      OPENAI_API_KEY: ${LITELLM_MASTER_KEY:-}
-      WEBUI_AUTH: ${WEBUI_AUTH:-True}
-      WEBUI_NAME: ${WEBUI_NAME:-CloudFreedom}
     depends_on:
       - litellm
+    
+    # Security Hardening
+    user: "1000:1000"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    
+    environment:
+      # OpenWebUI Configuration
+      OPENAI_API_BASE_URL: "http://litellm:4000/v1"
+      OPENAI_API_KEY: "${LITELLM_MASTER_KEY}"
+      
+      # UI Settings
+      WEBUI_AUTH: "${WEBUI_AUTH:-true}"
+      WEBUI_NAME: "${WEBUI_NAME:-CloudFreedom LLM}"
+      ENABLE_SIGNUP: "${ENABLE_SIGNUP:-false}"
+      DEFAULT_USER_ROLE: "${DEFAULT_USER_ROLE:-user}"
+      
+      # CloudFreedom Integration
+      TENANT_ID: "${TENANT_ID}"
+      CF_API_URL: "${CF_API_URL:-https://api.cloudfreedom.de}"
+    
     volumes:
       - openwebui-data:/app/backend/data
+      - /tmp
+    
     deploy:
       resources:
         limits:
-          cpus: "2.0"
-          memory: 6144M
+          cpus: "${WEBUI_CPU_LIMIT:-2.0}"
+          memory: "${WEBUI_MEM_LIMIT:-4G}"
         reservations:
           cpus: "0.25"
-          memory: 512M
+          memory: "512M"
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    
     labels:
+      # Coolify Management
+      - "coolify.managed=true"
+      - "coolify.version=${COOLIFY_VERSION}"
+      
+      # CloudFreedom Labels
+      - "cf.platform=agent-platform"
+      - "cf.tenant=${TENANT_ID}"
+      - "cf.service-type=openwebui"
+      - "cf.deployed-by=provisioner-cli"
+      - "cf.deployed-at=${DEPLOY_TIMESTAMP}"
+      
+      # Traefik Configuration
       - "traefik.enable=true"
-      - "traefik.http.routers.${STACK_NAME:-openwebui}.rule=Host(`${WEBUI_DOMAIN}`)"
-      - "traefik.http.routers.${STACK_NAME:-openwebui}.entrypoints=websecure"
-      - "traefik.http.routers.${STACK_NAME:-openwebui}.tls=true"
-      - "traefik.http.services.${STACK_NAME:-openwebui}.loadbalancer.server.port=8080"
+      - "traefik.http.routers.cf-${TENANT_ID}-webui-http.rule=Host(\`${TENANT_ID}-chat.cloudfreedom.de\`)"
+      - "traefik.http.routers.cf-${TENANT_ID}-webui-http.entrypoints=http"
+      - "traefik.http.routers.cf-${TENANT_ID}-webui-http.middlewares=redirect-to-https"
+      - "traefik.http.routers.cf-${TENANT_ID}-webui-https.rule=Host(\`${TENANT_ID}-chat.cloudfreedom.de\`)"
+      - "traefik.http.routers.cf-${TENANT_ID}-webui-https.entrypoints=https"
+      - "traefik.http.routers.cf-${TENANT_ID}-webui-https.tls=true"
+      - "traefik.http.routers.cf-${TENANT_ID}-webui-https.tls.certresolver=letsencrypt"
+      - "traefik.http.services.cf-${TENANT_ID}-webui.loadbalancer.server.port=8080"
+      
+      # Monitoring
+      - "monitoring.enabled=true"
+      - "monitoring.service=openwebui"
+      - "monitoring.tenant=${TENANT_ID}"
+    
+    networks:
+      - coolify
+      - llm-internal
+
+networks:
+  coolify:
+    external: true
+  llm-internal:
+    name: cf-${TENANT_ID}-llm-internal
 
 volumes:
   openwebui-data:
+    name: cf-${TENANT_ID}-openwebui-data
+    labels:
+      - "cf.tenant=${TENANT_ID}"
+      - "cf.service=openwebui"
+      - "cf.type=data"
+
+  litellm-config:
+    name: cf-${TENANT_ID}-litellm-config
+    labels:
+      - "cf.tenant=${TENANT_ID}"
+      - "cf.service=litellm"
+      - "cf.type=config"
+
+  litellm-data:
+    name: cf-${TENANT_ID}-litellm-data
+    labels:
+      - "cf.tenant=${TENANT_ID}"
+      - "cf.service=litellm"
+      - "cf.type=data"

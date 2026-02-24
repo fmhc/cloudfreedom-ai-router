@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import { pb } from '@/lib/api'
 import { Button } from '@/components/ui/button'
-import { Users, Building2, Package, Activity, Key, Lock } from 'lucide-react'
+import { Users, Building2, Package, Activity, Key, Lock, Bot } from 'lucide-react'
 import { UsageAnalytics } from '@/components/analytics/UsageAnalytics'
 import { UsersList } from '@/components/users/UsersList'
 import { TenantsList } from '@/components/tenants/TenantsList'
 import { ProductsList } from '@/components/products/ProductsList'
 import { ProviderKeysList } from '@/components/tenants/ProviderKeysList'
+import { AgentStacksList } from '@/components/agents/AgentStacksList'
 import { PasswordChangeDialog } from '@/components/users/PasswordChangeDialog'
 
-type TabType = 'overview' | 'users' | 'tenants' | 'products' | 'providers'
+type TabType = 'overview' | 'users' | 'tenants' | 'products' | 'providers' | 'agents'
 
 export function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('overview')
@@ -27,6 +28,7 @@ export function Dashboard() {
     { id: 'tenants' as TabType, label: 'Tenants', icon: Building2 },
     { id: 'products' as TabType, label: 'Products', icon: Package },
     { id: 'providers' as TabType, label: 'Provider Keys', icon: Key },
+    { id: 'agents' as TabType, label: 'Agent Stacks', icon: Bot },
   ]
 
   return (
@@ -145,6 +147,7 @@ export function Dashboard() {
           {activeTab === 'tenants' && <TenantsList />}
           {activeTab === 'products' && <ProductsList />}
           {activeTab === 'providers' && <ProviderKeysList />}
+          {activeTab === 'agents' && <AgentStacksList />}
         </div>
       </main>
 

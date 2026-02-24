@@ -1,0 +1,78 @@
+{
+  "$schema": "https://pocketbase.io/schemas/collections.schema.json",
+  "note": "Schema extension for CloudFreedom Agent Hosting MVP. Import manually in PocketBase Admin UI or translate into pb_migrations.",
+  "collections": [
+    {
+      "name": "bot_templates",
+      "type": "base",
+      "fields": [
+        { "name": "name", "type": "text", "required": true, "unique": true },
+        { "name": "description", "type": "text", "required": false },
+        { "name": "compose_template", "type": "editor", "required": true },
+        { "name": "required_secrets", "type": "json", "required": false },
+        { "name": "default_config", "type": "json", "required": false }
+      ]
+    },
+    {
+      "name": "bot_instances",
+      "type": "base",
+      "fields": [
+        {
+          "name": "tenant_id",
+          "type": "relation",
+          "required": true,
+          "options": { "collection": "tenants", "cascadeDelete": true, "maxSelect": 1 }
+        },
+        {
+          "name": "template_id",
+          "type": "relation",
+          "required": true,
+          "options": { "collection": "bot_templates", "cascadeDelete": false, "maxSelect": 1 }
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "options": {
+            "maxSelect": 1,
+            "values": ["pending", "deploying", "running", "stopped", "error"]
+          }
+        },
+        { "name": "coolify_app_id", "type": "text", "required": false },
+        { "name": "subdomain", "type": "text", "required": true },
+        { "name": "config", "type": "json", "required": false }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_bot_instances_tenant_template ON bot_instances (tenant_id, template_id)"
+      ]
+    },
+    {
+      "name": "deploy_logs",
+      "type": "base",
+      "fields": [
+        {
+          "name": "instance_id",
+          "type": "relation",
+          "required": true,
+          "options": { "collection": "bot_instances", "cascadeDelete": true, "maxSelect": 1 }
+        },
+        {
+          "name": "action",
+          "type": "select",
+          "required": true,
+          "options": {
+            "maxSelect": 1,
+            "values": ["deploy", "stop", "restart", "destroy"]
+          }
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "options": { "maxSelect": 1, "values": ["success", "error"] }
+        },
+        { "name": "message", "type": "text", "required": true }
+      ]
+    }
+  ]
+}

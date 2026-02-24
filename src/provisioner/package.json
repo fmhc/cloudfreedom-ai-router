@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "bun run --watch index.ts",
-    "start": "bun run index.ts"
+    "dev": "node --watch index.js",
+    "start": "node index.js"
   },
   "dependencies": {
-    "hono": "^4.0.0"
+    "dotenv": "^16.6.1",
+    "yargs": "^17.7.2"
   }
 }

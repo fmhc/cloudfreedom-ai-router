@@ -83,8 +83,30 @@ export interface TenantProviderKey {
   updated: string
 }
 
+export interface AgentStack {
+  id: string
+  tenant_id: string
+  template: 'openclaw-agent' | 'telegram-bot' | 'base-llm'
+  stack_name: string
+  status: 'pending' | 'deploying' | 'running' | 'stopped' | 'error'
+  domain?: string
+  coolify_service_uuid?: string
+  env_vars?: Record<string, string>
+  resource_limits?: {
+    cpu: string
+    memory: string
+  }
+  last_health_check?: string
+  last_deploy?: string
+  created: string
+  updated: string
+}
+
 // Billing API Client
 const BILLING_API_URL = import.meta.env.VITE_BILLING_API_URL || 'http://localhost:3000'
+
+// Provisioner API Client
+const PROVISIONER_API_URL = import.meta.env.VITE_PROVISIONER_API_URL || 'http://localhost:3001'
 
 // Helper to get auth headers with PocketBase token
 function getAuthHeaders() {
@@ -311,6 +333,99 @@ export const analytics = {
 
     return distribution
   },
+}
+
+// Provisioner API helper
+async function provisionerRequest(method: string, path: string, body?: any) {
+  const headers = getAuthHeaders()
+  const response = await fetch(`${PROVISIONER_API_URL}${path}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Request failed' }))
+    throw new Error(error.error || `Provisioner error ${response.status}`)
+  }
+  return response.json()
+}
+
+// Agent Stack Management
+export const agentStacks = {
+  async list() {
+    return pb.collection('agent_stacks').getFullList<AgentStack>({
+      expand: 'tenant_id',
+      sort: '-created'
+    })
+  },
+
+  async getOne(id: string) {
+    return pb.collection('agent_stacks').getOne<AgentStack>(id, {
+      expand: 'tenant_id',
+    })
+  },
+
+  async create(data: Partial<AgentStack>) {
+    return pb.collection('agent_stacks').create<AgentStack>(data)
+  },
+
+  async update(id: string, data: Partial<AgentStack>) {
+    return pb.collection('agent_stacks').update<AgentStack>(id, data)
+  },
+
+  async delete(id: string) {
+    return provisionerRequest('DELETE', `/api/stacks/${id}`)
+  },
+
+  async deploy(params: {
+    tenant_id: string
+    template: 'openclaw-agent' | 'telegram-bot' | 'base-llm'
+    stack_name: string
+    domain?: string
+    env_vars?: Record<string, string>
+  }) {
+    // Create record in PocketBase first
+    const stackRecord = await pb.collection('agent_stacks').create<AgentStack>({
+      tenant_id: params.tenant_id,
+      template: params.template,
+      stack_name: params.stack_name,
+      domain: params.domain,
+      config: { env_vars: params.env_vars },
+      status: 'pending'
+    })
+
+    // Call provisioner to deploy via Coolify
+    try {
+      await provisionerRequest('POST', '/api/stacks/deploy', {
+        stack_id: stackRecord.id,
+      })
+    } catch (error) {
+      // Update status to error if provisioner call fails
+      await pb.collection('agent_stacks').update(stackRecord.id, {
+        status: 'error',
+        error_message: error instanceof Error ? error.message : 'Provisioner unavailable',
+      })
+      throw error
+    }
+
+    return stackRecord
+  },
+
+  async stop(id: string) {
+    return provisionerRequest('POST', `/api/stacks/${id}/stop`)
+  },
+
+  async restart(id: string) {
+    return provisionerRequest('POST', `/api/stacks/${id}/restart`)
+  },
+
+  async getLogs(id: string) {
+    return provisionerRequest('GET', `/api/stacks/${id}/logs`)
+  },
+
+  async getStatus(id: string) {
+    return provisionerRequest('GET', `/api/stacks/${id}/status`)
+  }
 }
 
 

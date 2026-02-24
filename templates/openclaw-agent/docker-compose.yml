@@ -1,69 +1,42 @@
-# CloudFreedom Agent Platform — OpenClaw Bot Template
-# Deploy: Replace ${TENANT_ID}, ${TENANT_DOMAIN} and secrets before deploying
+# CloudFreedom Agent Platform — OpenClaw Agent Template
+# Tested & working on Coolify 4.x (2026-02-16)
 #
-# This template creates an isolated OpenClaw agent instance with:
-# - Persistent workspace (memory, sessions, config)
-# - Traefik HTTPS routing via *.cloudfreedom.de subdomain
-# - Resource limits for fair multi-tenant usage
-# - Health monitoring
+# Required env vars (set in Coolify):
+#   TENANT_ID - unique tenant identifier
+#
+# Optional env vars:
+#   NODE_OPTIONS     - Node.js options (default: --max-old-space-size=1536)
+#   CPU_LIMIT        - CPU limit (default: 1.0)
+#   MEMORY_LIMIT     - Memory limit (default: 2G) — OpenClaw needs ~500MB idle
+#   ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY - LLM provider keys
+#   TELEGRAM_BOT_TOKEN - for Telegram channel
+#   DISCORD_BOT_TOKEN  - for Discord channel
 
 services:
-  openclaw:
+  agent:
     image: ghcr.io/openclaw/openclaw:latest
-    container_name: cf-agent-${TENANT_ID}
     restart: unless-stopped
     environment:
-      # --- Core OpenClaw Config ---
-      OPENCLAW_CONFIG: |
-        {
-          "agent": { "id": "main", "name": "${AGENT_NAME:-CloudFreedom Agent}" },
-          "providers": {
-            "anthropic": { "apiKey": "${ANTHROPIC_API_KEY:-}" },
-            "openai": { "apiKey": "${OPENAI_API_KEY:-}" },
-            "google": { "apiKey": "${GOOGLE_API_KEY:-}" }
-          },
-          "model": "${DEFAULT_MODEL:-anthropic/claude-sonnet-4-20250514}",
-          "channels": {}
-        }
-      # --- Optional: Messaging Channels ---
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
-      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-}
-      # --- Platform ---
       NODE_ENV: production
+      NODE_OPTIONS: "${NODE_OPTIONS:---max-old-space-size=1536}"
     volumes:
-      - openclaw-data:/home/node/.openclaw
-    networks:
-      - agent-net
+      - agent-data:/home/node/.openclaw
     deploy:
       resources:
         limits:
           cpus: "${CPU_LIMIT:-1.0}"
-          memory: "${MEM_LIMIT:-1G}"
+          memory: "${MEMORY_LIMIT:-2G}"
         reservations:
           cpus: "0.25"
-          memory: "256M"
-    healthcheck:
-      test: ["CMD", "node", "-e", "process.exit(0)"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.agent-${TENANT_ID}.rule=Host(`${TENANT_DOMAIN:-${TENANT_ID}.cloudfreedom.de}`)"
-      - "traefik.http.routers.agent-${TENANT_ID}.entrypoints=https"
-      - "traefik.http.routers.agent-${TENANT_ID}.tls=true"
-      - "traefik.http.routers.agent-${TENANT_ID}.tls.certresolver=letsencrypt"
-      - "traefik.http.services.agent-${TENANT_ID}.loadbalancer.server.port=18789"
-      - "coolify.managed=true"
-      - "cloudfreedom.tenant=${TENANT_ID}"
-      - "cloudfreedom.template=openclaw-agent"
+          memory: 512M
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    user: "1000:1000"
 
 volumes:
-  openclaw-data:
-    name: cf-agent-${TENANT_ID}-data
-
-networks:
-  agent-net:
-    name: cf-agent-${TENANT_ID}-net
-    driver: bridge
+  agent-data:

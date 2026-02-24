@@ -55,28 +55,30 @@ CloudFreedom AI Router
 
 CloudFreedom wird um **Agent-/Bot-Hosting** erweitert: neben dem Managed LLM Routing (Router) können Tenant-spezifische **Bots, Worker und Agenten** sicher auf derselben souveränen Infrastruktur betrieben werden.
 
-Technisch basiert das auf dem bestehenden Setup:
+Technische Basis:
 
-- **Coolify + Docker** (keine Podman/Kata/extra Provisioning-Services)
-- **Traefik** als gemeinsamer Ingress/TLS
-- **PocketBase (api.cloudfreedom.de)** als Tenant/Billing Source of Truth
+- **Coolify + Docker** als Deployment-Orchestrierung
+- **Traefik** als gemeinsamer Ingress/TLS (automatisches HTTPS pro Subdomain)
+- **PocketBase** als Source of Truth (Tenants, Tokens, Bot-Instanzen, Deploy-Logs)
 
-### Was neu dazu kommt
+### MVP (dieses Repo)
 
-- **Templates** für typische Workloads (Docker Compose)
-  - `templates/openclaw-agent/`
-  - `templates/telegram-bot/`
-  - `templates/base-llm/` (LiteLLM + OpenWebUI)
-- **Provisioner CLI** (`src/provisioner/`): erstellt pro Tenant ein Coolify-Projekt und deployed Stacks via **Coolify API**.
+- **OpenClaw Bot Template**: `templates/openclaw-agent/docker-compose.yml`
+  - Raw-Compose-fähig (Coolify Service)
+  - Healthcheck + Ressourcengrenzen
+  - Persistenz via Volume (`/data`)
+  - Traefik Labels für tenant-spezifische Subdomain
+  - Per-Tenant Netzwerkisolation
 
-👉 Einstieg in die Agent-Hosting-Doku:
+- **Provisioner API (Bun/Hono)**: `src/provisioner/`
+  - Deploy/Status/Stop/Restart/Destroy via **Coolify API**
+  - Optional: PocketBase Integration für Token/State/Logs
 
-- `docs/agent-platform/PRODUCT.md`
-- `docs/agent-platform/ARCHITECTURE.md`
-- `docs/agent-platform/MVP-PLAN.md`
-- `docs/agent-platform/INTEGRATION.md`
-- `docs/agent-platform/SECURITY.md`
-- `docs/agent-platform/PRICING.md`
+👉 Relevante Doku:
+
+- `docs/MVP-PLAN.md`
+- `docs/USER-FLOWS.md`
+- `docs/pocketbase-schema-extension.json`
 
 ## 🚀 Quick Start
 

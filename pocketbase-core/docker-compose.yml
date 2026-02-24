@@ -23,6 +23,17 @@ services:
       - "coolify.managed=true"
       - "coolify.type=application"
       - "coolify.name=pocketbase-core"
+      - traefik.enable=true
+      - traefik.http.routers.cf-pb-http.entryPoints=http
+      - traefik.http.routers.cf-pb-http.middlewares=redirect-to-https
+      - "traefik.http.routers.cf-pb-http.rule=Host(\"api.cloudfreedom.de\")"
+      - traefik.http.routers.cf-pb-http.service=cf-pb
+      - traefik.http.routers.cf-pb-https.entryPoints=https
+      - "traefik.http.routers.cf-pb-https.rule=Host(\"api.cloudfreedom.de\")"
+      - traefik.http.routers.cf-pb-https.tls=true
+      - traefik.http.routers.cf-pb-https.tls.certresolver=letsencrypt
+      - traefik.http.routers.cf-pb-https.service=cf-pb
+      - traefik.http.services.cf-pb.loadbalancer.server.port=8090
 
 networks:
   default:

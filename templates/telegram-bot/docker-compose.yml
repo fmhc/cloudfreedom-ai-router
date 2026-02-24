@@ -1,26 +1,92 @@
+version: '3.8'
+
 services:
   telegram-bot:
     build: .
+    container_name: cf-${TENANT_ID}-telegram-bot
     restart: unless-stopped
+    
+    # Security Hardening
+    user: "1000:1000"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    
+    tmpfs:
+      - /tmp:noexec,nosuid,size=50m
+    
     environment:
-      # Provided via Coolify environment variables
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-      CLOUDFREEDOM_ROUTER_BASE_URL: ${CLOUDFREEDOM_ROUTER_BASE_URL:-https://router.cloudfreedom.de}
-      CLOUDFREEDOM_API_KEY: ${CLOUDFREEDOM_API_KEY}
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
-    healthcheck:
-      test: ["CMD", "python", "-c", "import os,sys; sys.exit(0 if os.getenv('TELEGRAM_BOT_TOKEN') else 1)"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
+      # Bot Configuration
+      TELEGRAM_BOT_TOKEN: "${TELEGRAM_BOT_TOKEN}"
+      BOT_NAME: "${BOT_NAME:-CloudFreedom Bot}"
+      
+      # CloudFreedom Integration
+      TENANT_ID: "${TENANT_ID}"
+      CF_API_URL: "${CF_API_URL:-https://api.cloudfreedom.de}"
+      CF_BILLING_URL: "${CF_BILLING_URL:-https://billing.cloudfreedom.de}"
+      CF_API_KEY: "${CF_API_KEY}"
+      
+      # Features
+      WEBHOOK_MODE: "${WEBHOOK_MODE:-false}"
+      WEBHOOK_URL: "${WEBHOOK_URL:-}"
+      ALLOWED_USERS: "${ALLOWED_USERS:-}"
+      
+      # Logging
+      LOG_LEVEL: "${LOG_LEVEL:-info}"
+      PYTHON_UNBUFFERED: "1"
+    
     deploy:
       resources:
         limits:
-          cpus: "0.50"
-          memory: 512M
+          cpus: "${CPU_LIMIT:-0.5}"
+          memory: "${MEMORY_LIMIT:-512M}"
         reservations:
-          cpus: "0.10"
-          memory: 128M
+          cpus: "0.1"
+          memory: "${MEMORY_RESERVE:-128M}"
+    
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,requests; requests.get('https://api.telegram.org/bot' + os.environ['TELEGRAM_BOT_TOKEN'] + '/getMe').raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    
     labels:
-      # No public ingress needed for long-polling bots.
+      # Coolify Management
+      - "coolify.managed=true"
+      - "coolify.version=${COOLIFY_VERSION}"
+      
+      # CloudFreedom Labels
+      - "cf.platform=agent-platform"
+      - "cf.tenant=${TENANT_ID}"
+      - "cf.service-type=telegram-bot"
+      - "cf.deployed-by=provisioner-cli"
+      - "cf.deployed-at=${DEPLOY_TIMESTAMP}"
+      
+      # No Traefik needed for polling bots
       - "traefik.enable=false"
+      
+      # Monitoring
+      - "monitoring.enabled=true"
+      - "monitoring.service=telegram-bot"
+      - "monitoring.tenant=${TENANT_ID}"
+    
+    networks:
+      - bot-internal
+
+networks:
+  bot-internal:
+    name: cf-${TENANT_ID}-telegram-bot-net
+    driver: bridge
+    internal: false  # Needs external access for Telegram API
+    labels:
+      - "cf.tenant=${TENANT_ID}"
+      - "cf.service=telegram-bot"
