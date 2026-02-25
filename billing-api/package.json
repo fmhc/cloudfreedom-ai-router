@@ -1,16 +1,26 @@
 {
-  "name": "billing-api",
+  "name": "cloudfreedom-billing-api",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "CloudFreedom Stripe Webhook Handler",
+  "main": "stripe-webhook.js",
+  "type": "module",
   "scripts": {
+    "start": "node dist/stripe-webhook.js",
+    "dev": "tsx watch stripe-webhook.ts",
+    "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "keywords": ["stripe", "webhook", "billing", "cloudfreedom"],
+  "author": "CloudFreedom",
+  "license": "MIT",
   "dependencies": {
-    "hono": "^4.9.10",
-    "pocketbase": "^0.26.2"
+    "express": "^4.18.2",
+    "stripe": "^14.21.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.19",
+    "tsx": "^4.7.1",
+    "typescript": "^5.3.3"
   }
 }

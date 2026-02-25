@@ -1,11 +1,41 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import PocketBase from 'pocketbase'
+import Stripe from 'stripe'
 
 const app = new Hono()
 
 // PocketBase client
 const pb = new PocketBase(process.env.POCKETBASE_URL || 'http://localhost:8090')
+
+// Stripe client
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: '2024-12-18.acacia'
+})
+
+// Stripe pricing configuration
+const STRIPE_PLANS = {
+  starter: {
+    name: 'Starter',
+    price: 2900, // €29.00 in cents
+    tokens: 50000,
+    currency: 'eur'
+  },
+  pro: {
+    name: 'Pro', 
+    price: 9900, // €99.00 in cents
+    tokens: 500000,
+    currency: 'eur'
+  },
+  enterprise: {
+    name: 'Enterprise',
+    price: 29900, // €299.00 in cents
+    tokens: -1, // unlimited
+    currency: 'eur'
+  }
+}
+
+const OVERAGE_PRICE_PER_TOKEN = 0.002 // €0.002 per token
 
 // CORS for API access
 app.use('/*', cors())
@@ -42,8 +72,16 @@ const authMiddleware = async (c, next) => {
   }
 }
 
-// Apply auth middleware to all /api/* routes except health
-app.use('/api/*', authMiddleware)
+// Apply auth middleware to all /api/* routes except health and webhook
+app.use('/api/*', async (c, next) => {
+  // Skip auth for Stripe webhook
+  if (c.req.path === '/api/stripe/webhook') {
+    await next()
+    return
+  }
+  
+  await authMiddleware(c, next)
+})
 
 // Health check
 app.get('/health', (c) => {
@@ -184,6 +222,345 @@ app.post('/api/budget/check', async (c) => {
     console.error('Budget check error:', error)
     return c.json({ 
       error: 'Failed to check budget',
+      details: error.message 
+    }, 500)
+  }
+})
+
+// ======================
+// STRIPE ENDPOINTS
+// ======================
+
+// Create Stripe Checkout Session
+app.post('/api/stripe/create-checkout-session', async (c) => {
+  try {
+    const body = await c.req.json()
+    const { plan_id, tenant_id, user_id, success_url, cancel_url } = body
+
+    // Validate required fields
+    if (!plan_id || !tenant_id || !user_id || !success_url || !cancel_url) {
+      return c.json({ error: 'Missing required fields: plan_id, tenant_id, user_id, success_url, cancel_url' }, 400)
+    }
+
+    // Validate plan
+    if (!STRIPE_PLANS[plan_id]) {
+      return c.json({ error: `Invalid plan_id: ${plan_id}. Available: ${Object.keys(STRIPE_PLANS).join(', ')}` }, 400)
+    }
+
+    const plan = STRIPE_PLANS[plan_id]
+
+    // Get or create Stripe customer for user
+    let customer
+    const user = await pb.collection('users').getOne(user_id)
+    
+    if (user.stripe_customer_id) {
+      // Get existing customer
+      customer = await stripe.customers.retrieve(user.stripe_customer_id)
+    } else {
+      // Create new customer
+      customer = await stripe.customers.create({
+        email: user.email,
+        metadata: {
+          user_id: user_id,
+          tenant_id: tenant_id
+        }
+      })
+
+      // Update user with Stripe customer ID
+      await pb.collection('users').update(user_id, {
+        stripe_customer_id: customer.id
+      })
+    }
+
+    // Create checkout session
+    const session = await stripe.checkout.sessions.create({
+      customer: customer.id,
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: plan.currency,
+            product_data: {
+              name: `CloudFreedom ${plan.name} Plan`,
+              description: `${plan.tokens === -1 ? 'Unlimited' : plan.tokens.toLocaleString()} tokens per month`
+            },
+            unit_amount: plan.price,
+            recurring: {
+              interval: 'month'
+            }
+          },
+          quantity: 1
+        }
+      ],
+      mode: 'subscription',
+      success_url: success_url,
+      cancel_url: cancel_url,
+      metadata: {
+        plan_id: plan_id,
+        tenant_id: tenant_id,
+        user_id: user_id
+      }
+    })
+
+    return c.json({
+      success: true,
+      checkout_url: session.url,
+      session_id: session.id
+    })
+
+  } catch (error) {
+    console.error('Stripe checkout session error:', error)
+    return c.json({ 
+      error: 'Failed to create checkout session',
+      details: error.message 
+    }, 500)
+  }
+})
+
+// Stripe Webhook Handler
+app.post('/api/stripe/webhook', async (c) => {
+  try {
+    const sig = c.req.header('stripe-signature')
+    const body = await c.req.text()
+
+    if (!sig) {
+      return c.json({ error: 'Missing Stripe signature' }, 400)
+    }
+
+    // Verify webhook signature
+    let event
+    try {
+      event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET)
+    } catch (err) {
+      console.error('Webhook signature verification failed:', err.message)
+      return c.json({ error: 'Webhook signature verification failed' }, 400)
+    }
+
+    console.log('Stripe webhook event:', event.type)
+
+    // Handle events
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object
+        const { plan_id, tenant_id, user_id } = session.metadata
+        
+        console.log(`Checkout completed for user ${user_id}, plan ${plan_id}`)
+
+        // Update user with subscription info
+        const plan = STRIPE_PLANS[plan_id]
+        await pb.collection('users').update(user_id, {
+          subscription_id: session.subscription,
+          subscription_status: 'active',
+          plan_id: plan_id,
+          budget_total: plan.tokens === -1 ? 999999999 : plan.tokens, // Set high number for unlimited
+          budget_used: 0,
+          budget_remaining: plan.tokens === -1 ? 999999999 : plan.tokens
+        })
+
+        // Log payment history
+        await pb.collection('payment_history').create({
+          stripe_event_id: event.id,
+          user_id: user_id,
+          tenant_id: tenant_id,
+          amount: plan.price / 100, // Convert from cents to euros
+          status: 'completed',
+          event_type: 'subscription_started'
+        })
+
+        break
+      }
+
+      case 'invoice.paid': {
+        const invoice = event.data.object
+        const subscription = await stripe.subscriptions.retrieve(invoice.subscription)
+        const customer = await stripe.customers.retrieve(subscription.customer)
+        const user_id = customer.metadata.user_id
+        const tenant_id = customer.metadata.tenant_id
+
+        console.log(`Invoice paid for user ${user_id}`)
+
+        // Reset token allowance for the billing period
+        const user = await pb.collection('users').getOne(user_id)
+        const plan = STRIPE_PLANS[user.plan_id]
+        
+        await pb.collection('users').update(user_id, {
+          subscription_status: 'active',
+          budget_total: plan.tokens === -1 ? 999999999 : plan.tokens,
+          budget_used: 0,
+          budget_remaining: plan.tokens === -1 ? 999999999 : plan.tokens
+        })
+
+        // Log payment history
+        await pb.collection('payment_history').create({
+          stripe_event_id: event.id,
+          user_id: user_id,
+          tenant_id: tenant_id,
+          amount: invoice.amount_paid / 100,
+          status: 'completed',
+          event_type: 'invoice_paid'
+        })
+
+        break
+      }
+
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object
+        const subscription = await stripe.subscriptions.retrieve(invoice.subscription)
+        const customer = await stripe.customers.retrieve(subscription.customer)
+        const user_id = customer.metadata.user_id
+        const tenant_id = customer.metadata.tenant_id
+
+        console.log(`Invoice payment failed for user ${user_id}`)
+
+        // Update subscription status
+        await pb.collection('users').update(user_id, {
+          subscription_status: 'past_due'
+        })
+
+        // Log payment history
+        await pb.collection('payment_history').create({
+          stripe_event_id: event.id,
+          user_id: user_id,
+          tenant_id: tenant_id,
+          amount: invoice.amount_due / 100,
+          status: 'failed',
+          event_type: 'payment_failed'
+        })
+
+        break
+      }
+
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object
+        const customer = await stripe.customers.retrieve(subscription.customer)
+        const user_id = customer.metadata.user_id
+        const tenant_id = customer.metadata.tenant_id
+
+        console.log(`Subscription deleted for user ${user_id}`)
+
+        // Update user status
+        await pb.collection('users').update(user_id, {
+          subscription_status: 'canceled',
+          subscription_id: null,
+          plan_id: null,
+          budget_total: 0,
+          budget_used: 0,
+          budget_remaining: 0
+        })
+
+        // Log payment history
+        await pb.collection('payment_history').create({
+          stripe_event_id: event.id,
+          user_id: user_id,
+          tenant_id: tenant_id,
+          amount: 0,
+          status: 'canceled',
+          event_type: 'subscription_canceled'
+        })
+
+        break
+      }
+
+      default:
+        console.log(`Unhandled event type: ${event.type}`)
+    }
+
+    return c.json({ received: true })
+
+  } catch (error) {
+    console.error('Webhook error:', error)
+    return c.json({ 
+      error: 'Webhook processing failed',
+      details: error.message 
+    }, 500)
+  }
+})
+
+// Create Stripe Customer Portal Session
+app.get('/api/stripe/portal/:userId', async (c) => {
+  try {
+    const userId = c.req.param('userId')
+    const return_url = c.req.query('return_url') || 'https://app.cloudfreedom.ai/billing'
+
+    // Get user
+    const user = await pb.collection('users').getOne(userId)
+    
+    if (!user.stripe_customer_id) {
+      return c.json({ error: 'User has no Stripe customer ID' }, 400)
+    }
+
+    // Create portal session
+    const portalSession = await stripe.billingPortal.sessions.create({
+      customer: user.stripe_customer_id,
+      return_url: return_url
+    })
+
+    return c.json({
+      success: true,
+      portal_url: portalSession.url
+    })
+
+  } catch (error) {
+    console.error('Portal session error:', error)
+    return c.json({ 
+      error: 'Failed to create portal session',
+      details: error.message 
+    }, 500)
+  }
+})
+
+// Get Subscription Status for Tenant
+app.get('/api/stripe/subscription/:tenantId', async (c) => {
+  try {
+    const tenantId = c.req.param('tenantId')
+
+    // Find users in this tenant
+    const users = await pb.collection('users').getList(1, 50, {
+      filter: `tenant_id = "${tenantId}"`
+    })
+
+    if (users.items.length === 0) {
+      return c.json({ error: 'No users found for tenant' }, 404)
+    }
+
+    // Get subscription info for active subscribers
+    const subscriptions = []
+    
+    for (const user of users.items) {
+      if (user.subscription_id && user.stripe_customer_id) {
+        try {
+          const subscription = await stripe.subscriptions.retrieve(user.subscription_id)
+          const plan = STRIPE_PLANS[user.plan_id] || {}
+          
+          subscriptions.push({
+            user_id: user.id,
+            user_email: user.email,
+            subscription_id: user.subscription_id,
+            plan_id: user.plan_id,
+            plan_name: plan.name,
+            status: subscription.status,
+            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            budget_total: user.budget_total,
+            budget_used: user.budget_used,
+            budget_remaining: user.budget_remaining
+          })
+        } catch (err) {
+          console.error(`Failed to get subscription for user ${user.id}:`, err)
+        }
+      }
+    }
+
+    return c.json({
+      tenant_id: tenantId,
+      subscription_count: subscriptions.length,
+      subscriptions: subscriptions
+    })
+
+  } catch (error) {
+    console.error('Subscription status error:', error)
+    return c.json({ 
+      error: 'Failed to get subscription status',
       details: error.message 
     }, 500)
   }
