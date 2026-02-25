@@ -1,47 +1,12 @@
-# Build stage
-FROM node:20-alpine AS builder
-
+FROM node:20-alpine AS build
 WORKDIR /app
-
-# Copy package files
-COPY package.json bun.lockb* package-lock.json* yarn.lock* pnpm-lock.yaml* ./
-
-# Install dependencies
-RUN if [ -f bun.lockb ]; then \
-      npm install -g bun && bun install --frozen-lockfile; \
-    elif [ -f pnpm-lock.yaml ]; then \
-      npm install -g pnpm && pnpm install --frozen-lockfile; \
-    elif [ -f yarn.lock ]; then \
-      yarn install --frozen-lockfile; \
-    else \
-      npm ci; \
-    fi
-
-# Copy source files
+COPY package*.json ./
+RUN npm ci
 COPY . .
+RUN npm run build
 
-# Build the app
-RUN if [ -f bun.lockb ]; then \
-      bun run build; \
-    else \
-      npm run build; \
-    fi
-
-# Production stage
 FROM nginx:alpine
-
-# Copy built files
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Copy nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Expose port
+COPY --from=build /app/dist /usr/share/nginx/html
+# SPA fallback
+RUN echo 'server { listen 80; root /usr/share/nginx/html; index index.html; location / { try_files $uri $uri/ /index.html; } }' > /etc/nginx/conf.d/default.conf
 EXPOSE 80
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost/ || exit 1
-
-CMD ["nginx", "-g", "daemon off;"]
-
