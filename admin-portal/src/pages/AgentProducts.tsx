@@ -124,8 +124,8 @@ export default function AgentProducts() {
             <a href="#pricing" className="transition hover:text-white">Preise</a>
             <a href="#faq" className="transition hover:text-white">FAQ</a>
           </div>
-          <a href="mailto:info@cloudfreedom.de" className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium transition hover:bg-purple-500">
-            Kontakt
+          <a href="#booking" className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium transition hover:bg-purple-500">
+            Termin buchen
           </a>
         </div>
       </nav>
@@ -144,11 +144,11 @@ export default function AgentProducts() {
             DSGVO-konform. Keine US-Cloud.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <a href="#products" className="rounded-xl bg-purple-600 px-8 py-3.5 font-semibold shadow-lg shadow-purple-600/20 transition hover:bg-purple-500">
-              Agents entdecken
+            <a href="#booking" className="rounded-xl bg-purple-600 px-8 py-3.5 font-semibold shadow-lg shadow-purple-600/20 transition hover:bg-purple-500">
+              Kostenlos beraten lassen
             </a>
-            <a href="#pricing" className="rounded-xl border border-gray-700 px-8 py-3.5 font-semibold text-gray-300 transition hover:border-gray-500 hover:text-white">
-              Preise ansehen
+            <a href="#products" className="rounded-xl border border-gray-700 px-8 py-3.5 font-semibold text-gray-300 transition hover:border-gray-500 hover:text-white">
+              Produkte ansehen
             </a>
           </div>
         </div>
@@ -226,14 +226,14 @@ export default function AgentProducts() {
               </ul>
 
               <a
-                href="mailto:info@cloudfreedom.de?subject=Anfrage: CloudFreedom Agent — ${p.name}"
+                href="#booking"
                 className={`block rounded-xl py-3 text-center font-semibold transition ${
                   p.popular
                     ? 'bg-purple-600 text-white hover:bg-purple-500'
                     : 'bg-gray-800 text-gray-200 hover:bg-gray-700'
                 }`}
               >
-                Agent anfragen →
+                Beratung buchen →
               </a>
               <p className="mt-3 text-center text-xs text-gray-600">{p.ideal}</p>
             </div>
@@ -307,16 +307,22 @@ export default function AgentProducts() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="px-6 py-20 text-center">
-        <h2 className="mb-4 text-3xl font-bold">Bereit für Ihren digitalen Mitarbeiter?</h2>
-        <p className="mb-8 text-gray-400">Kostenlose Erstberatung — unverbindlich und persönlich.</p>
-        <a
-          href="mailto:info@cloudfreedom.de?subject=Erstberatung CloudFreedom Agent"
-          className="inline-block rounded-xl bg-purple-600 px-10 py-4 text-lg font-semibold shadow-lg shadow-purple-600/20 transition hover:bg-purple-500"
-        >
-          Jetzt Beratung anfragen →
-        </a>
+      {/* Booking */}
+      <section id="booking" className="mx-auto max-w-4xl px-6 py-20">
+        <h2 className="mb-4 text-center text-3xl font-bold">Kostenlose Erstberatung buchen</h2>
+        <p className="mb-8 text-center text-gray-400">
+          Wählen Sie einen Termin — unverbindlich und persönlich. Wir besprechen Ihren Bedarf und zeigen Ihnen, wie ein KI-Agent Ihnen helfen kann.
+        </p>
+        <div className="overflow-hidden rounded-2xl border border-gray-800 bg-gray-900/50">
+          <iframe
+            src="https://calcom.callthe.dev/embed?layout=month_view&theme=dark"
+            style={{ width: '100%', height: '650px', border: 'none' }}
+            title="Termin buchen — CloudFreedom Erstberatung"
+          />
+        </div>
+        <p className="mt-4 text-center text-xs text-gray-600">
+          Powered by Cal.com · Selbst gehostet auf deutschen Servern
+        </p>
       </section>
 
       {/* Footer */}
