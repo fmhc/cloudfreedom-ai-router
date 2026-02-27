@@ -315,9 +315,10 @@ export default function AgentProducts() {
         </p>
         <div className="overflow-hidden rounded-2xl border border-gray-800 bg-gray-900/50">
           <iframe
-            src="https://calcom.callthe.dev/embed?layout=month_view&theme=dark"
-            style={{ width: '100%', height: '650px', border: 'none' }}
+            src="https://calcom.callthe.dev/finn/30min?layout=month_view&theme=dark"
+            style={{ width: '100%', height: '700px', border: 'none' }}
             title="Termin buchen — CloudFreedom Erstberatung"
+            loading="lazy"
           />
         </div>
         <p className="mt-4 text-center text-xs text-gray-600">
