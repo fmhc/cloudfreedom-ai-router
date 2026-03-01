@@ -10,11 +10,17 @@
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["stripe", "webhook", "billing", "cloudfreedom"],
+  "keywords": [
+    "stripe",
+    "webhook",
+    "billing",
+    "cloudfreedom"
+  ],
   "author": "CloudFreedom",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
+    "hono": "^4.0.0",
+    "pocketbase": "^0.21.0",
     "stripe": "^14.21.0"
   },
   "devDependencies": {
